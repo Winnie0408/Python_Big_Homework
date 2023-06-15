@@ -2,8 +2,6 @@ from modules import get_mooc_exercise
 from modules import rain_class_ppt_to_excel
 from modules import get_rain_class_online_exercise
 
-
-
 if __name__ == '__main__':
     print("欢迎使用HWinZnieJ学习小助手")
     while True:

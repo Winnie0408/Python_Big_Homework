@@ -33,7 +33,7 @@ def get():
     driver.get("https://www.icourse163.org/")
     driver.add_cookie(
         {'name': 'STUDY_SESS',
-         'value': '\"p8soX2V3gOna1kDAp9N1bYqRowqWAOJktczrfmeGCtf9KEToTikkD0AGnQy+THlIb3ZiO9t4i38s59iq+MfRmrk4Woz3hBDxRvRmEVVfqSP4+1YL+yzPCJQdocnvuj4hmJnvgKc3JNMUCExy8lx+Y11kjYuHGa5uocfKWdGVlpYLhur2Nm2wEb9HcEikV+3FTI8+lZKyHhiycNQo+g+/oA==\"',
+         'value': '',
          'domain': '.icourse163.org'})
     # driver.get(
     #     "file://C:/Users/11969/OneDrive/桌面/毛泽东思想和中国特色社会主义理论体系概论（曾丽萍）_中国大学MOOC(慕课).html")
@@ -134,7 +134,7 @@ def get():
                 i += 1
 
         try:
-            with open('result.csv', 'a', encoding='utf-8', errors='ignore') as file:
+            with open('MOOC_result.csv', 'a', encoding='utf-8', errors='ignore') as file:
                 writer = io.TextIOWrapper(file.buffer, write_through=True)
                 writer.write(title.encode('utf-8').decode('utf-8'))
                 writer.write("\n")
