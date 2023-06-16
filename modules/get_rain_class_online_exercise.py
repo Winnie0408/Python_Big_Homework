@@ -12,7 +12,7 @@ from webdriver_manager.microsoft import EdgeChromiumDriverManager
 from cnocr import CnOcr
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver import ActionChains
+from selenium.webdriver import Keys
 from PIL import Image, ImageDraw
 
 
@@ -115,7 +115,19 @@ def write_exercise_to_csv1(type, question, opt, answer, index):
             if type == "判断":
                 writer.write("(" + type + ") " + str(index) + "." + question + ",正确,错误,,,," + answer.replace(",", "").split(" ")[0])
             else:
-                writer.write("(" + type + ") " + str(index) + "." + question + ",A." + opt[0] + ",B." + opt[1] + ",C." + opt[2] + ",D." + opt[3] + ",," + answer.replace(",", "").split(" ")[0])
+                writer.write("(" + type + ") " + str(index) + "." + question)
+                for i in range(4, len(opt)):
+                    match i:
+                        case 0:
+                            writer.write(",A." + opt[i])
+                        case 1:
+                            writer.write(",B." + opt[i])
+                        case 2:
+                            writer.write(",C." + opt[i])
+                        case 3:
+                            writer.write(",D." + opt[i])
+
+                writer.write(",," + answer.replace(",", "").split(" ")[0])
             writer.write("\n")
     except IOError as e:
         print(e)
@@ -160,20 +172,236 @@ def get():
 
     show_noti(driver, "请选择您要导出的课程，<br>选择好后请回到Python确认")
 
-    input("输入Y/y后回车以继续")
+    if input("输入Y/y后回车以继续").lower() != 'y':
+        print("您已取消练习题导出")
+        return
 
     delete_noti(driver)
     print("正在获取课程列表……")
+
+    roll_to_bottom(driver)  # 主动滚动到底部，加载所有课程
+
     class_name = driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[1]/h1[1]/div[1]").text  # 获取课程名称
     teacher = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div[1]/div[1]/div/span[1]/div[2]/div[1]").text  # 获取老师名称
-    list = driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]")  # 获取课程日志列表
+    list = len(driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]").find_elements(By.XPATH, "./*"))  # 获取课程日志列表
+    print("您当前选择的课程为：" + teacher + "老师的" + class_name + "，该课程共有" + str(list) + "个日志")
 
-    print("您当前选择的课程为：" + teacher + "老师的" + class_name + "，该课程共有" + str(
-        len(list.find_elements(By.XPATH, "./*"))) + "个日志")
+    traversal_list(driver, wait, "", teacher, class_name, list)
 
-    for i in range(1, len(list.find_elements(By.XPATH, "./*")) + 1):
+    # for i in range(1, len(list.find_elements(By.XPATH, "./*")) + 1):
+    #     time.sleep(0.5)
+    #     type = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div/section[" + str(i) + "]").get_attribute("innerHTML")  # 获取日志类型
+    #     type = type.split("#icon-")[1].split("\"")[0]
+    #     match type:
+    #         case "ketang":
+    #             type = "课堂"
+    #         case "kaoshi":
+    #             type = "考试"
+    #         case "taolun":
+    #             type = "讨论"
+    #         case "zuoye":
+    #             type = "作业"
+    #         case "piliang":
+    #             type = "批量"
+    #         case _:
+    #             print("第" + str(i) + "个日志类型为" + type + "，不包含题目，跳过")
+    #             continue
+    #
+    #     try:
+    #         name = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div/section[" + str(i) + "]/div[2]/div[2]/section/div[1]/div/h2").text
+    #     except NoSuchElementException:
+    #         name = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div/section[" + str(i) + "]/div/div[2]/section/div[1]/div/h2").text
+    #
+    #     print("\n进入第" + str(i) + "个" + type + "日志：" + name)
+    #     match type:
+    #         case "课堂":
+    #             # time.sleep(1)
+    #             # 进入课堂日志
+    #             try:
+    #                 driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div[2]/div[2]").click()
+    #             except NoSuchElementException:
+    #                 driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div/div[2]").click()
+    #             wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[1]/div[2]/div/div/div/div[2]/div")))
+    #             extract_exercise_from_classroom(driver, wait, name, type, i)
+    #             # # time.sleep(1)
+    #             # # 进入课堂日志
+    #             # try:
+    #             #     driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div[2]/div[2]").click()
+    #             # except NoSuchElementException:
+    #             #     driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div/div[2]").click()
+    #             # wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[1]/div[2]/div/div/div/div[2]/div")))
+    #             #
+    #             # try:
+    #             #     WebDriverWait(driver, 1, 0.3).until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div/div/div[2]/div/div[1]/div/div")))  # 等待习题加载
+    #             #     driver.refresh()
+    #             #     time.sleep(1.5)
+    #             #     driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div/div/div[2]/div/div[1]/div/div/div[1]").click()  # 点击第一道习题，进入习题列表
+    #             #     wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div[2]/div/div[1]/div/div[2]")))  # 等待习题列表加载
+    #             #     num = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div[2]/div/div[1]/div/div[2]/div/div[1]/div/div[1]/div/div/div/div[3]/span/span").text.split("(")[1].split(")")[0]  # 获取习题数量
+    #             #     print("\t该日志有" + str(num) + "道习题，正在获取……")
+    #             #     write_title_to_csv(type + " " + name)
+    #             #
+    #             #     for j in range(1, int(num) + 1):
+    #             #         print("\t\t获取第" + str(j) + "道，共" + str(num) + "道")
+    #             #         driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div[2]/div/div[1]/div/div[2]/div/div[2]/div[1]/div[2]/div[1]/div[" + str(j) + "]").click()  # 点击第j道习题
+    #             #         wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div[2]/div/div[1]/div/div[2]/div/div[2]/div[3]/div/div/div[1]/div/div/img")))  # 等待习题大图加载
+    #             #         img_src = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div[2]/div/div[1]/div/div[2]/div/div[2]/div[3]/div/div/div[" + str(j) + "]/div/div/img").get_attribute("src")  # 获取习题大图链接
+    #             #         get_pic(img_src, "pic" + str(j))
+    #             #         optimize_pic("pic" + str(j))
+    #             #         result = ocr_from_pic("pic" + str(j))
+    #             #         wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div[2]/div/div[1]/div/div[2]/div/div[2]/div[4]/div[2]/div[2]/div[1]/div/div/div[1]/div")))
+    #             #         answer = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div[2]/div/div[1]/div/div[2]/div/div[2]/div[4]/div[2]/div[2]/div[1]/div/div/div[1]/div/div[1]/div").get_attribute("innerText")
+    #             #         write_exercise_to_csv(json.loads(json.dumps(result)), answer, j)
+    #             #
+    #             #     print("\t" + type + "日志:" + name + "习题获取完毕")
+    #             #     driver.back()
+    #             #
+    #             # except (NoSuchElementException, TimeoutException, StaleElementReferenceException):
+    #             #     print("\t该日志无习题，跳过")
+    #             #     driver.back()
+    #             #     wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]")))  # 等待日志列表加载
+    #
+    #         case "考试":
+    #             # time.sleep(1)
+    #             # 进入考试日志
+    #             try:
+    #                 driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div[2]/div[2]").click()
+    #             except NoSuchElementException:
+    #                 driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div/div[2]").click()
+    #             wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/div[2]/div/div")))  # 等待考试数据加载
+    #             extract_exercise_from_examination(driver, wait, name, type, i)
+    #             # # time.sleep(1)
+    #             # # 进入考试日志
+    #             # try:
+    #             #     driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div[2]/div[2]").click()
+    #             # except NoSuchElementException:
+    #             #     driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div/div[2]").click()
+    #             # wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/div[2]/div/div")))  # 等待考试数据加载
+    #             # time.sleep(1)
+    #             # driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div[2]/div/div/div[4]/a").click()  # 点击查看试卷
+    #             # driver.switch_to.window(driver.window_handles[-1])  # 切换到新窗口
+    #             # wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div")))  # 等待试卷加载
+    #             # wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div/div[1]")))  # 等待试卷加载
+    #             # time.sleep(1.5)
+    #             #
+    #             # write_title_to_csv(type + " " + name)
+    #             #
+    #             # # 获取题目数量
+    #             # num = driver.find_element(By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[1]/div/div[1]/div[2]").text.split("/")[1].split("题")[0]
+    #             # print("\t该日志有" + str(num) + "道习题，正在获取……")
+    #             #
+    #             # for j in range(1, int(num) + 1):
+    #             #     print("\t\t获取第" + str(j) + "道，共" + str(num) + "道")
+    #             #     typeEx = driver.find_element(By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div/div[" + str(j) + "]/div/div[1]").text.split(".")[1].split("题")[0]  # 获取题目类型
+    #             #     question = driver.find_element(By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div/div[" + str(j) + "]/div/div[2]/h4").text  # 获取题目
+    #             #
+    #             #     opt = []
+    #             #     for k in range(1, 5):
+    #             #         if typeEx == "判断":
+    #             #             break
+    #             #         opt.append(driver.find_element(By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div/div[" + str(j) + "]/div/div[2]/ul/li[" + str(k) + "]/label/span[2]/span[2]").text)  # 获取选项
+    #             #
+    #             #     answer = driver.find_element(By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div/div[" + str(j) + "]/div/div[3]/div[2]/div/span[2]").text  # 获取答案
+    #             #     # driver.find_element(By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div/div[" + str(j) + "]/div/div[3]/div[3]/div[1]").click()  # 点击查看解析
+    #             #     # explain = driver.find_element(By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div/div[" + str(j) + "]/div/div[3]/div[3]/div[2]").get_attribute("innerText")  # 获取解析
+    #             #     # if explain == "None":
+    #             #     #     explain = "本题暂无解析"
+    #             #
+    #             #     write_exercise_to_csv1(typeEx, question, opt, answer, j)
+    #             #
+    #             # print("\t" + type + "日志:" + name + "习题获取完毕")
+    #             # driver.close()
+    #             # driver.switch_to.window(driver.window_handles[-1])  # 切换回原窗口
+    #             # driver.back()
+    #
+    #         case "讨论":
+    #             # time.sleep(1)
+    #             # 进入讨论日志
+    #             try:
+    #                 driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div[2]/div[2]").click()
+    #             except NoSuchElementException:
+    #                 driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div/div[2]").click()
+    #             wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/div[2]/div[1]/div/section[2]")))  # 等待讨论加载
+    #             extract_exercise_from_discussion(driver, wait, name, type, i)
+    #             # # time.sleep(1)
+    #             # # 进入讨论日志
+    #             # try:
+    #             #     driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div[2]/div[2]").click()
+    #             # except NoSuchElementException:
+    #             #     driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div/div[2]").click()
+    #             # wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/div[2]/div[1]/div/section[2]")))  # 等待讨论加载
+    #             # time.sleep(0.5)
+    #             # # title = driver.find_element(By.XPATH,"/html/body/div[4]/div[2]/div/div[2]/div[1]/div/section[1]/div[1]/span").text
+    #             # text = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div[2]/div[1]/div/section[2]/div").get_attribute("innerText")
+    #             # write_title_to_csv(type + " " + name + "\n" + text)
+    #             #
+    #             # print("\t" + type + "日志:" + name + "获取完毕")
+    #             # driver.back()
+    #
+    #         case "作业":
+    #             try:
+    #                 driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div[2]/div[2]").click()
+    #             except NoSuchElementException:
+    #                 driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div/div[2]").click()
+    #             wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/div[2]/div[1]/div/section[2]")))  # 等待作业加载
+    #             extract_exercise_from_homework(driver, wait, name, type, i)
+    #             # time.sleep(1)
+    #             # 进入作业日志
+    #             # try:
+    #             #     driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div[2]/div[2]").click()
+    #             # except NoSuchElementException:
+    #             #     driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div/div[2]").click()
+    #             # wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/div[2]/div[1]/div/section[2]")))  # 等待作业加载
+    #             #
+    #             # # 获取题目数量
+    #             # num = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[1]/div/div[2]/div[1]/div/div/div/div").text.split("/")[1].split("题")[0]
+    #             # print("\t该日志有" + str(num) + "道习题，正在获取……")
+    #             # write_title_to_csv(type + " " + name)
+    #             #
+    #             # for j in range(1, int(num) + 1):
+    #             #     print("\t\t获取第" + str(j) + "道，共" + str(num) + "道")
+    #             #     typeEx = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[2]/div[1]/div[1]/div/div/div[1]").text.split(".")[1].split("题")[0]  # 获取题目类型
+    #             #     question = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[2]/div[1]/div[1]/div/div/div[2]/div/div").text  # 获取题目
+    #             #
+    #             #     opt = []
+    #             #     for k in range(1, 5):
+    #             #         if typeEx == "判断":
+    #             #             break
+    #             #         opt.append(driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[2]/div[1]/div[1]/div/div/div[2]/div/ul/li[" + str(j) + "]/label/span[2]/span[2]").text)  # 获取选项
+    #             #
+    #             #     answer = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[2]/div[1]/div[1]/div/div/div[3]/div[1]/div/div[2]/div").text.split("：")[1]  # 获取答案
+    #             #     write_exercise_to_csv1(typeEx, question, opt, answer, j)
+    #             #     if j < int(num):
+    #             #         driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[2]/div[2]/div/div[3]/div/ul/li").click()  # 点击下一题
+    #             #
+    #             # print("\t" + type + "日志:" + name + "习题获取完毕")
+    #             # driver.back()
+    #
+    #         case "批量":
+    #             # 选择路径
+    #             try:
+    #                 driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div/section[" + str(i) + "]/div/div[2]/section[1]").get_attribute("innerText")
+    #                 path = "div/div[2]"
+    #             except NoSuchElementException:
+    #                 path = "div[2]/div[2]"
+    #
+    #             # 展开批量日志
+    #             driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/" + path + "/section[1]/div[1]/div/div/span/span").click()
+    #             num = len(driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div/section[" + str(i) + "]/" + path + "/section[2]/div/div").find_elements(By.XPATH, "./*"))  # 获取批量日志中包含的日志数量
+    #             print("\t该批量日志有" + str(num) + "个子日志，正在获取……")
+
+    print(teacher + "老师的 " + class_name + " 所有题目获取完毕\n")
+
+
+def traversal_list(driver, wait, recursion, teacher, class_name, list):
+    for i in range(1, int(list) + 1):
         time.sleep(0.5)
-        type = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div/section[" + str(i) + "]").get_attribute("innerHTML")  # 获取日志类型
+        if recursion == "":
+            type = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div/section[" + str(i) + "]").get_attribute("innerHTML")  # 获取日志类型
+            xpath = "/html/body/div[4]/div[2]/div/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div"
+        else:
+            type = driver.find_element(By.XPATH, recursion + "/section[" + str(i) + "]").get_attribute("innerHTML")  # 获取日志类型
+            xpath = recursion
         type = type.split("#icon-")[1].split("\"")[0]
         match type:
             case "ketang":
@@ -187,150 +415,360 @@ def get():
             case "piliang":
                 type = "批量"
             case _:
-                print("第" + str(i) + "个日志类型为" + type + "，不包含题目，跳过")
+                if recursion == "":
+                    print("\n第" + str(i) + "个日志类型为" + type + "，不包含题目，跳过")
+                else:
+                    print("\n\t\t第" + str(i) + "个子日志类型为" + type + "，不包含题目，跳过")
                 continue
 
         try:
-            name = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div/section[" + str(i) + "]/div[2]/div[2]/section/div[1]/div/h2").text
-        except NoSuchElementException:
-            name = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div/section[" + str(i) + "]/div/div[2]/section/div[1]/div/h2").text
+            if recursion == "":
+                name = driver.find_element(By.XPATH, xpath + "/section[" + str(i) + "]/div[2]/div[2]/section/div[1]/div/h2").text
+                path = "div[2]/div[2]"
+            else:
+                name = driver.find_element(By.XPATH, xpath + "/section[" + str(i) + "]/div[1]/div/h2").text
+                path = "div[1]"
 
-        print("进入第" + str(i) + "个" + type + "日志：" + name)
+        except NoSuchElementException:
+            if recursion == "":
+                name = driver.find_element(By.XPATH, xpath + "/section[" + str(i) + "]/div/div[2]/section/div[1]/div/h2").text
+                path = "div/div[2]"
+            else:
+                name = driver.find_element(By.XPATH, xpath + "/section[" + str(i) + "]/div[1]/div/h2").text
+                path = "div[1]"
+
+        if recursion == "":
+            print("\n进入第" + str(i) + "个" + type + "日志：" + name)
+        else:
+            print("\n\t\t进入第" + str(i) + "个" + type + "子日志：" + name)
         match type:
             case "课堂":
                 # time.sleep(1)
                 # 进入课堂日志
-                try:
-                    driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div[2]/div[2]").click()
-                except NoSuchElementException:
-                    driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div/div[2]").click()
+                target = driver.find_element(By.XPATH, xpath + "/section[" + str(i) + "]/" + path)
+                driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", target)
+                time.sleep(0.5)
+
+                driver.find_element(By.XPATH, xpath + "/section[" + str(i) + "]/" + path).click()
                 wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[1]/div[2]/div/div/div/div[2]/div")))
-
-                try:
-                    WebDriverWait(driver, 1, 0.3).until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div/div/div[2]/div/div[1]/div/div")))  # 等待习题加载
-                    driver.refresh()
-                    time.sleep(1.5)
-                    driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div/div/div[2]/div/div[1]/div/div/div[1]").click()  # 点击第一道习题，进入习题列表
-                    wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div[2]/div/div[1]/div/div[2]")))  # 等待习题列表加载
-                    num = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div[2]/div/div[1]/div/div[2]/div/div[1]/div/div[1]/div/div/div/div[3]/span/span").text.split("(")[1].split(")")[0]  # 获取习题数量
-                    print("\t该日志有" + str(num) + "道习题，正在获取……")
-                    write_title_to_csv(type + " " + name)
-
-                    for j in range(1, int(num) + 1):
-                        print("\t\t获取第" + str(j) + "道，共" + str(num) + "道")
-                        driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div[2]/div/div[1]/div/div[2]/div/div[2]/div[1]/div[2]/div[1]/div[" + str(j) + "]").click()  # 点击第j道习题
-                        wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div[2]/div/div[1]/div/div[2]/div/div[2]/div[3]/div/div/div[1]/div/div/img")))  # 等待习题大图加载
-                        img_src = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div[2]/div/div[1]/div/div[2]/div/div[2]/div[3]/div/div/div[" + str(j) + "]/div/div/img").get_attribute("src")  # 获取习题大图链接
-                        get_pic(img_src, "pic" + str(j))
-                        optimize_pic("pic" + str(j))
-                        result = ocr_from_pic("pic" + str(j))
-                        wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div[2]/div/div[1]/div/div[2]/div/div[2]/div[4]/div[2]/div[2]/div[1]/div/div/div[1]/div")))
-                        answer = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div[2]/div/div[1]/div/div[2]/div/div[2]/div[4]/div[2]/div[2]/div[1]/div/div/div[1]/div/div[1]/div").get_attribute("innerText")
-                        write_exercise_to_csv(json.loads(json.dumps(result)), answer, j)
-
-                    print("\t" + type + "日志:" + name + "习题获取完毕")
-                    driver.back()
-
-                except (NoSuchElementException, TimeoutException, StaleElementReferenceException):
-                    print("\t该日志无习题，跳过")
-                    driver.back()
-                    wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]")))  # 等待日志列表加载
+                if recursion != "":
+                    print("\t\t", end="")
+                extract_exercise_from_classroom(driver, wait, name, type, i)
+                # # time.sleep(1)
+                # # 进入课堂日志
+                # try:
+                #     driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div[2]/div[2]").click()
+                # except NoSuchElementException:
+                #     driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div/div[2]").click()
+                # wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[1]/div[2]/div/div/div/div[2]/div")))
+                #
+                # try:
+                #     WebDriverWait(driver, 1, 0.3).until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div/div/div[2]/div/div[1]/div/div")))  # 等待习题加载
+                #     driver.refresh()
+                #     time.sleep(1.5)
+                #     driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div/div/div[2]/div/div[1]/div/div/div[1]").click()  # 点击第一道习题，进入习题列表
+                #     wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div[2]/div/div[1]/div/div[2]")))  # 等待习题列表加载
+                #     num = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div[2]/div/div[1]/div/div[2]/div/div[1]/div/div[1]/div/div/div/div[3]/span/span").text.split("(")[1].split(")")[0]  # 获取习题数量
+                #     print("\t该日志有" + str(num) + "道习题，正在获取……")
+                #     write_title_to_csv(type + " " + name)
+                #
+                #     for j in range(1, int(num) + 1):
+                #         print("\t\t获取第" + str(j) + "道，共" + str(num) + "道")
+                #         driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div[2]/div/div[1]/div/div[2]/div/div[2]/div[1]/div[2]/div[1]/div[" + str(j) + "]").click()  # 点击第j道习题
+                #         wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div[2]/div/div[1]/div/div[2]/div/div[2]/div[3]/div/div/div[1]/div/div/img")))  # 等待习题大图加载
+                #         img_src = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div[2]/div/div[1]/div/div[2]/div/div[2]/div[3]/div/div/div[" + str(j) + "]/div/div/img").get_attribute("src")  # 获取习题大图链接
+                #         get_pic(img_src, "pic" + str(j))
+                #         optimize_pic("pic" + str(j))
+                #         result = ocr_from_pic("pic" + str(j))
+                #         wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div[2]/div/div[1]/div/div[2]/div/div[2]/div[4]/div[2]/div[2]/div[1]/div/div/div[1]/div")))
+                #         answer = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div[2]/div/div[1]/div/div[2]/div/div[2]/div[4]/div[2]/div[2]/div[1]/div/div/div[1]/div/div[1]/div").get_attribute("innerText")
+                #         write_exercise_to_csv(json.loads(json.dumps(result)), answer, j)
+                #
+                #     print("\t" + type + "日志:" + name + "习题获取完毕")
+                #     driver.back()
+                #
+                # except (NoSuchElementException, TimeoutException, StaleElementReferenceException):
+                #     print("\t该日志无习题，跳过")
+                #     driver.back()
+                #     wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]")))  # 等待日志列表加载
 
             case "考试":
                 # time.sleep(1)
                 # 进入考试日志
-                try:
-                    driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div[2]/div[2]").click()
-                except NoSuchElementException:
-                    driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div/div[2]").click()
+                target = driver.find_element(By.XPATH, xpath + "/section[" + str(i) + "]/" + path)
+                driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", target)
+                time.sleep(0.5)
+
+                driver.find_element(By.XPATH, xpath + "/section[" + str(i) + "]/" + path).click()
                 wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/div[2]/div/div")))  # 等待考试数据加载
-                time.sleep(1)
-                driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div[2]/div/div/div[4]/a").click()  # 点击查看试卷
-                driver.switch_to.window(driver.window_handles[-1])  # 切换到新窗口
-                wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div")))  # 等待试卷加载
-                wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div/div[1]")))  # 等待试卷加载
-                time.sleep(1.5)
-
-                write_title_to_csv(type + " " + name)
-
-                # 获取题目数量
-                num = driver.find_element(By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[1]/div/div[1]/div[2]").text.split("/")[1].split("题")[0]
-                print("\t该日志有" + str(num) + "道习题，正在获取……")
-
-                for j in range(1, int(num) + 1):
-                    print("\t\t获取第" + str(j) + "道，共" + str(num) + "道")
-                    typeEx = driver.find_element(By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div/div[" + str(j) + "]/div/div[1]").text.split(".")[1].split("题")[0]  # 获取题目类型
-                    question = driver.find_element(By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div/div[" + str(j) + "]/div/div[2]/h4").text  # 获取题目
-
-                    opt = []
-                    for k in range(1, 5):
-                        if typeEx == "判断":
-                            break
-                        opt.append(driver.find_element(By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div/div[" + str(j) + "]/div/div[2]/ul/li[" + str(k) + "]/label/span[2]/span[2]").text)  # 获取选项
-
-                    answer = driver.find_element(By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div/div[" + str(j) + "]/div/div[3]/div[2]/div/span[2]").text  # 获取答案
-                    # driver.find_element(By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div/div[" + str(j) + "]/div/div[3]/div[3]/div[1]").click()  # 点击查看解析
-                    # explain = driver.find_element(By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div/div[" + str(j) + "]/div/div[3]/div[3]/div[2]").get_attribute("innerText")  # 获取解析
-                    # if explain == "None":
-                    #     explain = "本题暂无解析"
-
-                    write_exercise_to_csv1(typeEx, question, opt, answer, j)
-
-                print("\t" + type + "日志:" + name + "习题获取完毕")
-                driver.close()
-                driver.switch_to.window(driver.window_handles[-1])  # 切换回原窗口
-                driver.back()
+                if recursion != "":
+                    print("\t\t", end="")
+                extract_exercise_from_examination(driver, wait, name, type, i)
+                # # time.sleep(1)
+                # # 进入考试日志
+                # try:
+                #     driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div[2]/div[2]").click()
+                # except NoSuchElementException:
+                #     driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div/div[2]").click()
+                # wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/div[2]/div/div")))  # 等待考试数据加载
+                # time.sleep(1)
+                # driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div[2]/div/div/div[4]/a").click()  # 点击查看试卷
+                # driver.switch_to.window(driver.window_handles[-1])  # 切换到新窗口
+                # wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div")))  # 等待试卷加载
+                # wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div/div[1]")))  # 等待试卷加载
+                # time.sleep(1.5)
+                #
+                # write_title_to_csv(type + " " + name)
+                #
+                # # 获取题目数量
+                # num = driver.find_element(By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[1]/div/div[1]/div[2]").text.split("/")[1].split("题")[0]
+                # print("\t该日志有" + str(num) + "道习题，正在获取……")
+                #
+                # for j in range(1, int(num) + 1):
+                #     print("\t\t获取第" + str(j) + "道，共" + str(num) + "道")
+                #     typeEx = driver.find_element(By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div/div[" + str(j) + "]/div/div[1]").text.split(".")[1].split("题")[0]  # 获取题目类型
+                #     question = driver.find_element(By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div/div[" + str(j) + "]/div/div[2]/h4").text  # 获取题目
+                #
+                #     opt = []
+                #     for k in range(1, 5):
+                #         if typeEx == "判断":
+                #             break
+                #         opt.append(driver.find_element(By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div/div[" + str(j) + "]/div/div[2]/ul/li[" + str(k) + "]/label/span[2]/span[2]").text)  # 获取选项
+                #
+                #     answer = driver.find_element(By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div/div[" + str(j) + "]/div/div[3]/div[2]/div/span[2]").text  # 获取答案
+                #     # driver.find_element(By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div/div[" + str(j) + "]/div/div[3]/div[3]/div[1]").click()  # 点击查看解析
+                #     # explain = driver.find_element(By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div/div[" + str(j) + "]/div/div[3]/div[3]/div[2]").get_attribute("innerText")  # 获取解析
+                #     # if explain == "None":
+                #     #     explain = "本题暂无解析"
+                #
+                #     write_exercise_to_csv1(typeEx, question, opt, answer, j)
+                #
+                # print("\t" + type + "日志:" + name + "习题获取完毕")
+                # driver.close()
+                # driver.switch_to.window(driver.window_handles[-1])  # 切换回原窗口
+                # driver.back()
 
             case "讨论":
                 # time.sleep(1)
                 # 进入讨论日志
-                try:
-                    driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div[2]/div[2]").click()
-                except NoSuchElementException:
-                    driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div/div[2]").click()
-                wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/div[2]/div[1]/div/section[2]")))  # 等待讨论加载
+                target = driver.find_element(By.XPATH, xpath + "/section[" + str(i) + "]/" + path)
+                driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", target)
                 time.sleep(0.5)
-                # title = driver.find_element(By.XPATH,"/html/body/div[4]/div[2]/div/div[2]/div[1]/div/section[1]/div[1]/span").text
-                text = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div[2]/div[1]/div/section[2]/div").get_attribute("innerText")
-                write_title_to_csv(type + " " + name + "\n" + text)
 
-                print("\t" + type + "日志:" + name + "获取完毕")
-                driver.back()
+                driver.find_element(By.XPATH, xpath + "/section[" + str(i) + "]/" + path).click()
+                wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/div[2]/div[1]/div/section[2]")))  # 等待讨论加载
+                if recursion != "":
+                    print("\t\t", end="")
+                extract_exercise_from_discussion(driver, wait, name, type, i)
+                # # time.sleep(1)
+                # # 进入讨论日志
+                # try:
+                #     driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div[2]/div[2]").click()
+                # except NoSuchElementException:
+                #     driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div/div[2]").click()
+                # wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/div[2]/div[1]/div/section[2]")))  # 等待讨论加载
+                # time.sleep(0.5)
+                # # title = driver.find_element(By.XPATH,"/html/body/div[4]/div[2]/div/div[2]/div[1]/div/section[1]/div[1]/span").text
+                # text = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div[2]/div[1]/div/section[2]/div").get_attribute("innerText")
+                # write_title_to_csv(type + " " + name + "\n" + text)
+                #
+                # print("\t" + type + "日志:" + name + "获取完毕")
+                # driver.back()
 
             case "作业":
                 # time.sleep(1)
                 # 进入作业日志
-                try:
-                    driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div[2]/div[2]").click()
-                except NoSuchElementException:
-                    driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div/div[2]").click()
-                wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/div[2]/div[1]/div/section[2]")))  # 等待作业加载
+                target = driver.find_element(By.XPATH, xpath + "/section[" + str(i) + "]/" + path)
+                driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", target)
+                time.sleep(0.5)
 
-                # 获取题目数量
-                num = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[1]/div/div[2]/div[1]/div/div/div/div").text.split("/")[1].split("题")[0]
-                print("\t该日志有" + str(num) + "道习题，正在获取……")
-                write_title_to_csv(type + " " + name)
+                driver.find_element(By.XPATH, xpath + "/section[" + str(i) + "]/" + path).click()
+                wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div")))  # 等待作业加载
+                if recursion != "":
+                    print("\t\t", end="")
+                extract_exercise_from_homework(driver, wait, name, type, i)
+                # time.sleep(1)
+                # 进入作业日志
+                # try:
+                #     driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div[2]/div[2]").click()
+                # except NoSuchElementException:
+                #     driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/div/div[2]").click()
+                # wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/div[2]/div[1]/div/section[2]")))  # 等待作业加载
+                #
+                # # 获取题目数量
+                # num = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[1]/div/div[2]/div[1]/div/div/div/div").text.split("/")[1].split("题")[0]
+                # print("\t该日志有" + str(num) + "道习题，正在获取……")
+                # write_title_to_csv(type + " " + name)
+                #
+                # for j in range(1, int(num) + 1):
+                #     print("\t\t获取第" + str(j) + "道，共" + str(num) + "道")
+                #     typeEx = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[2]/div[1]/div[1]/div/div/div[1]").text.split(".")[1].split("题")[0]  # 获取题目类型
+                #     question = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[2]/div[1]/div[1]/div/div/div[2]/div/div").text  # 获取题目
+                #
+                #     opt = []
+                #     for k in range(1, 5):
+                #         if typeEx == "判断":
+                #             break
+                #         opt.append(driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[2]/div[1]/div[1]/div/div/div[2]/div/ul/li[" + str(j) + "]/label/span[2]/span[2]").text)  # 获取选项
+                #
+                #     answer = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[2]/div[1]/div[1]/div/div/div[3]/div[1]/div/div[2]/div").text.split("：")[1]  # 获取答案
+                #     write_exercise_to_csv1(typeEx, question, opt, answer, j)
+                #     if j < int(num):
+                #         driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[2]/div[2]/div/div[3]/div/ul/li").click()  # 点击下一题
+                #
+                # print("\t" + type + "日志:" + name + "习题获取完毕")
+                # driver.back()
 
-                for j in range(1, int(num) + 1):
-                    print("\t\t获取第" + str(j) + "道，共" + str(num) + "道")
-                    typeEx = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[2]/div[1]/div[1]/div/div/div[1]").text.split(".")[1].split("题")[0]  # 获取题目类型
-                    question = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[2]/div[1]/div[1]/div/div/div[2]/div/div").text  # 获取题目
+            case "批量":
+                # 滚动到指定元素位置，避免被遮挡而报错
+                target = driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/" + path + "/section[1]/div[1]/div/div/span/span")
+                driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", target)
+                time.sleep(0.5)
+                # 展开批量日志
+                driver.find_element(By.XPATH, "/html[1]/body[1]/div[4]/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/section[" + str(i) + "]/" + path + "/section[1]/div[1]/div/div/span/span").click()
+                time.sleep(1)
+                num = len(driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div/section[" + str(i) + "]/" + path + "/section[2]/div/div").find_elements(By.XPATH, "./section"))  # 获取批量日志中包含的日志数量
+                print("\t该批量日志有" + str(num) + "个子日志，正在获取……")
 
-                    opt = []
-                    for k in range(1, 5):
-                        if typeEx == "判断":
-                            break
-                        opt.append(driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[2]/div[1]/div[1]/div/div/div[2]/div/ul/li[" + str(j) + "]/label/span[2]/span[2]").text)  # 获取选项
+                traversal_list(driver, wait, "/html/body/div[4]/div[2]/div/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div/section[" + str(i) + "]/" + path + "/section[2]/div/div", teacher, class_name, num)
+                driver.refresh()
+                time.sleep(1)
+                roll_to_bottom(driver)
 
-                    answer = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[2]/div[1]/div[1]/div/div/div[3]/div[1]/div/div[2]/div").text.split("：")[1]  # 获取答案
-                    write_exercise_to_csv1(typeEx, question, opt, answer, j)
-                    if j < int(num):
-                        driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[2]/div[2]/div/div[3]/div/ul/li").click()  # 点击下一题
 
-                print("\t" + type + "日志:" + name + "习题获取完毕")
-                driver.back()
+def extract_exercise_from_classroom(driver, wait, name, type, i):
+    try:
+        WebDriverWait(driver, 1, 0.3).until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div/div/div[2]/div/div[1]/div/div")))  # 等待习题加载
+        driver.refresh()
+        time.sleep(1.5)
+        roll_to_bottom(driver)
+        driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div/div/div[2]/div/div[1]/div/div/div[1]").click()  # 点击第一道习题，进入习题列表
+        wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div[2]/div/div[1]/div/div[2]")))  # 等待习题列表加载
+        num = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div[2]/div/div[1]/div/div[2]/div/div[1]/div/div[1]/div/div/div/div[3]/span/span").text.split("(")[1].split(")")[0]  # 获取习题数量
+        print("\t该日志有" + str(num) + "道习题，正在获取……")
+        write_title_to_csv(type + " " + name)
 
-            # case "批量":
-            #     driver.find_element(By.XPATH,"/html/body/div[4]/div[2]/div/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div/section[" + str(i) + "]/div/div[2]/section[1]/div[1]/div/div/span/span").click() # 展开批量日志
+        for j in range(1, int(num) + 1):
+            print("\t\t获取第" + str(j) + "道，共" + str(num) + "道")
+            driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div[2]/div/div[1]/div/div[2]/div/div[2]/div[1]/div[2]/div[1]/div[" + str(j) + "]").click()  # 点击第j道习题
+            wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div[2]/div/div[1]/div/div[2]/div/div[2]/div[3]/div/div/div[1]/div/div/img")))  # 等待习题大图加载
+            img_src = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div[2]/div/div[1]/div/div[2]/div/div[2]/div[3]/div/div/div[" + str(j) + "]/div/div/img").get_attribute("src")  # 获取习题大图链接
+            get_pic(img_src, "pic" + str(j))
+            optimize_pic("pic" + str(j))
+            result = ocr_from_pic("pic" + str(j))
+            wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div[2]/div/div[1]/div/div[2]/div/div[2]/div[4]/div[2]/div[2]/div[1]/div/div/div[1]/div")))
+            answer = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div[2]/div/div[1]/div/div[2]/div/div[2]/div[4]/div[2]/div[2]/div[1]/div/div/div[1]/div/div[1]/div").get_attribute("innerText")
+            write_exercise_to_csv(json.loads(json.dumps(result)), answer, j)
 
-    print(teacher + "老师的" + class_name +"所有题目获取完毕\n")
+        print("\t" + type + "日志:" + name + "习题获取完毕")
+        driver.back()
+
+    except (NoSuchElementException, TimeoutException, StaleElementReferenceException):
+        print("\t该日志无习题，跳过")
+        driver.back()
+        wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]")))  # 等待日志列表加载
+
+
+def extract_exercise_from_examination(driver, wait, name, type, i):
+    wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/div[2]/div/div/div[4]/a")))
+    driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div[2]/div/div/div[4]/a").click()  # 点击查看试卷
+    driver.switch_to.window(driver.window_handles[-1])  # 切换到新窗口
+    wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div")))  # 等待试卷加载
+    wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div/div[1]")))  # 等待试卷加载
+    time.sleep(1.5)
+
+    write_title_to_csv(type + " " + name)
+
+    # 获取题目数量
+    num = driver.find_element(By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[1]/div/div[1]/div[2]").text.split("/")[1].split("题")[0]
+    print("\t该日志有" + str(num) + "道习题，正在获取……")
+
+    for j in range(1, int(num) + 1):
+        print("\t\t获取第" + str(j) + "道，共" + str(num) + "道")
+        typeEx = driver.find_element(By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div/div[" + str(j) + "]/div/div[1]").text.split(".")[1].split("题")[0]  # 获取题目类型
+        question = driver.find_element(By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div/div[" + str(j) + "]/div/div[2]/h4").text  # 获取题目
+
+        opt = []
+        for k in range(1, 5):
+            if typeEx == "判断":
+                break
+            opt.append(driver.find_element(By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div/div[" + str(j) + "]/div/div[2]/ul/li[" + str(k) + "]/label/span[2]/span[2]").text)  # 获取选项
+
+        answer = driver.find_element(By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div/div[" + str(j) + "]/div/div[3]/div[2]/div/span[2]").text  # 获取答案
+        # driver.find_element(By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div/div[" + str(j) + "]/div/div[3]/div[3]/div[1]").click()  # 点击查看解析
+        # explain = driver.find_element(By.XPATH, "/html/body/div[3]/div/div/div[1]/div[2]/div/div[2]/div/div/div/div/div/div[" + str(j) + "]/div/div[3]/div[3]/div[2]").get_attribute("innerText")  # 获取解析
+        # if explain == "None":
+        #     explain = "本题暂无解析"
+
+        write_exercise_to_csv1(typeEx, question, opt, answer, j)
+
+    print("\t" + type + "日志:" + name + "习题获取完毕")
+    driver.close()
+    driver.switch_to.window(driver.window_handles[-1])  # 切换回原窗口
+    driver.back()
+
+
+def extract_exercise_from_discussion(driver, wait, name, type, i):
+    time.sleep(0.5)
+    # title = driver.find_element(By.XPATH,"/html/body/div[4]/div[2]/div/div[2]/div[1]/div/section[1]/div[1]/span").text
+    text = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div[2]/div[1]/div/section[2]/div").get_attribute("innerText")
+    write_title_to_csv(type + " " + name + "\n" + text)
+
+    print("\t" + type + "日志:" + name + "获取完毕")
+    driver.back()
+
+
+def extract_exercise_from_homework(driver, wait, name, type, i):
+    wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[1]/div/div[2]/div[1]/div/div/div/div")))
+    time.sleep(0.5)
+    # 获取题目数量
+    num = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[1]/div/div[2]/div[1]/div/div/div/div").text.split("/")[1].split("题")[0]
+    print("\t该日志有" + str(num) + "道习题，正在获取……")
+    write_title_to_csv(type + " " + name)
+
+    for j in range(1, int(num) + 1):
+        wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[2]/div[1]/div[1]/div/div/div[2]/div/div")))
+        print("\t\t获取第" + str(j) + "道，共" + str(num) + "道")
+        typeEx = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[2]/div[1]/div[1]/div/div/div[1]").text.split(".")[1].split("题")[0]  # 获取题目类型
+        question = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[2]/div[1]/div[1]/div/div/div[2]/div/div").text  # 获取题目
+
+        opt = []
+        for k in range(1, 5):
+            if typeEx == "判断":
+                break
+            try:
+                opt.append(driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[2]/div[1]/div[1]/div/div/div[2]/div/ul/li[" + str(k) + "]/label/span[2]/span[2]").text)  # 获取选项
+            except NoSuchElementException:
+                break
+
+        answer = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[2]/div[1]/div[1]/div/div/div[3]/div[1]/div/div[2]/div").text.split("：")[1]  # 获取答案
+        write_exercise_to_csv1(typeEx, question, opt, answer, j)
+        if j < int(num):
+            driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[2]/div[2]/div/div[3]/div/ul/li").click()  # 点击下一题
+
+    print("\t" + type + "日志:" + name + "习题获取完毕")
+    driver.back()
+
+
+def roll_to_bottom(driver):
+    last_height = 0
+    xpath = "/html/body/div[4]/div[2]/div/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div"
+
+    while True:
+        # 滚动到网页底部
+        driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div[1]/div[2]/div[1]/div/div/div/div[2]").click()
+        driver.find_element(By.XPATH, "/html/body").send_keys(Keys.END)
+
+        # 等待页面加载
+        time.sleep(1)
+
+        # 检查网页内容的高度是否发生变化
+        element = driver.find_element(By.XPATH, xpath)
+        new_height = driver.execute_script("return arguments[0].offsetHeight", element)
+        if new_height == last_height:
+            # 网页已经滚动到真实的底部
+            break
+        last_height = new_height
+        # print(new_height)
+
+    driver.find_element(By.XPATH, "/html/body").send_keys(Keys.END)
