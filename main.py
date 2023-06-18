@@ -1,6 +1,7 @@
 from modules import get_mooc_exercise
 from modules import rain_class_ppt_to_excel
 from modules import get_rain_class_online_exercise
+from modules import chat_with_ai
 
 if __name__ == '__main__':
     print("\n欢迎使用HWinZnieJ学习小助手")
@@ -18,6 +19,8 @@ if __name__ == '__main__':
             get_mooc_exercise.get()
         elif user_input == "3":
             get_rain_class_online_exercise.get()
+        elif user_input == "4":
+            chat_with_ai.chat()
         else:
             print("\n感谢您的使用，再见！")
             exit(0)
