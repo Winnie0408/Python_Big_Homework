@@ -3,20 +3,23 @@ import os
 import pandas as pd
 from pptx import Presentation
 
+exerciseNum = 0
+
 
 def read_shape_text(shape):
+    '''获取形状中的文本'''
     text_runs = []
-    if shape.shape_type == 6:
+    if shape.shape_type == 6:  # type 6 是组合图形
         for s in shape.shapes:
-            text_runs.extend(read_shape_text(s))
-    elif shape.has_text_frame:
-        for paragraph in shape.text_frame.paragraphs:
+            text_runs.extend(read_shape_text(s))  # 递归地读取组合图形内的每个形状
+    elif shape.has_text_frame:  # 如果当前图像包含文本
+        for paragraph in shape.text_frame.paragraphs:  # 遍历每一段
             para_text = ''
-            for run in paragraph.runs:
-                if run.text not in ['设置', '提交']:
-                    para_text += run.text
-            if para_text:
-                text_runs.append(para_text)
+            for run in paragraph.runs:  # 遍历每一段中的每一行
+                if run.text not in ['设置', '提交']:  # 如果当前行不是设置或提交
+                    para_text += run.text  # 将当前行的文本添加到para_text中
+            if para_text:  # 如果para_text不为空
+                text_runs.append(para_text)  # 将para_text添加到text_runs中
     return text_runs
 
 
@@ -145,6 +148,7 @@ def format_text(text):
 
 
 def text_to_excel(txt):
+    '''将txt转换为为Excel表格'''
     with open(txt, 'r', encoding='utf-8') as f:
         lines = f.readlines()
     sheets = {}
@@ -155,7 +159,7 @@ def text_to_excel(txt):
             sheets[sheet_name] = []
         else:
             sheets[sheet_name].append(line.strip())
-    writer = pd.ExcelWriter('转换结果.xlsx', engine='xlsxwriter')
+    writer = pd.ExcelWriter('RainClass_PPT_Result.xlsx', engine='xlsxwriter')
     for sheet_name, rows in sheets.items():
         data = []
         for row in rows:
@@ -172,20 +176,28 @@ def text_to_excel(txt):
         df = pd.DataFrame(data,
                           columns=['题目', '选项A', '选项B', '选项C', '选项D', '选项E', '您的答案', '正确答案', '正误'])
         df.to_excel(writer, sheet_name=sheet_name, index=False)
-    writer.save()
+    writer.close()
 
 
 def run():
-    choose = input('请将需要转换的PPT文件放在本程序同目录的PPT目录下\n输入Y或y继续操作，输入其他任意字符退出：')
+    global exerciseNum
+    if os.path.exists("RainClass_PPT_Result.xlsx"):
+        del_file = input("\n需要删除上次生成结果文件RainClass_PPT_Result.xlsx才能继续\n删除吗？\n\tY/y：删除\n\t其他字符：退出\n请选择：").lower()
+        if del_file == "y":
+            os.remove("RainClass_PPT_Result.xlsx")
+            print("已删除")
+        else:
+            print("您已取消练习题导出")
+            return
+
+    choose = input('\n请将需要转换的PPT文件放在本程序同目录的PPT目录下\n\tY/y: 继续操作\n\t其他任意字符: 退出：')
 
     if choose.lower() == 'y':
         if os.path.exists(".temp"):
             os.remove(".temp")
 
-        exerciseNum = 0
-
         print('\n开始读取./PPT目录中的文件\n')
-        files = os.listdir('../PPT')
+        files = os.listdir('./PPT')
         for file in files:
             print('读取：\"' + file + '\"')
             text = read_pptx_text('./PPT/' + file, file.split('.')[0])
@@ -194,19 +206,17 @@ def run():
                 f1.close()
         print('所有PPT读取完成，共获取到' + str(exerciseNum) + '道题目\n')
 
-        print('格式化获取到的文本，并导入到“转换结果.xlsx”表格中\n')
-        if os.path.exists("转换结果.xlsx"):
-            os.remove("转换结果.xlsx")
+        # 格式化获取到的文本，并导入到“RainClass_PPT_Result.xlsx”表格中
         with open('.temp', 'r', encoding='utf-8') as f2:
             data = f2.read()
             data = format_text(data)
             with open('.temp', 'w', encoding='utf-8') as f3:
                 f3.write(data)
                 f3.close()
-
         text_to_excel('./.temp')
-        print('转换完成！')
+        print('转换完成！返回主菜单')
         os.remove('./.temp')
+        return
     else:
-        print('操作已结束')
+        print('您已取消练习题导出')
         return

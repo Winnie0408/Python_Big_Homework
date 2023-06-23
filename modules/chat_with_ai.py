@@ -14,6 +14,7 @@ thread2_stop = False
 
 
 def send_user_message(message):
+    '''向服务器发送用户消息，获取服务器返回的消息ID'''
     url = "http://gptbot.hwinzniej.top:28234/v2/chat"
     headers = {'Content-Type': 'application/json'}
     data = {
@@ -26,6 +27,7 @@ def send_user_message(message):
 
 
 def get_ai_status(msg_id):
+    '''查询AI是否可用'''
     url = f"http://gptbot.hwinzniej.top:28234/v2/chat/response?request_id={msg_id}"
     while True:
         response = requests.get(url).json()
@@ -40,42 +42,47 @@ def get_ai_status(msg_id):
 
 
 def get_ai_response(msg_id):
+    '''获取AI的回复'''
     global ai_response
     global ai_status
     global thread1_stop
     global thread2_stop
     url = f"http://gptbot.hwinzniej.top:28234/v2/chat/response?request_id={msg_id}"
     while True:
+        # 如果回复出错，停止线程
         if thread1_stop:
             break
 
-        response = requests.get(url).json()
+        response = requests.get(url).json()  # 获取AI回复的JSON数据
 
         try:
-            with ai_response_lock:
-                ai_response += response["message"][0]
+            with ai_response_lock:  # 加锁，防止多线程同时修改ai_response
+                ai_response += response["message"][0]  # 将AI回复的内容添加到ai_response
+                # print("\n==========分段==========\n")
         except IndexError:
+            # AI正在思考
             if ai_status == 0:
                 print(".", end="")
             pass
         try:
             if str(response["message"][0]).__contains__("出现故障"):
+                # AI回复出现故障
                 print(f"\n\n错误详情：{response['message'][0].split('错误详情：')[1]}", end="")
                 response["result"] = "FAILED"
         except IndexError:
             pass
 
         if response["result"] == "DONE":
-            print("后端已完成回复")
+            # print("\n==========后端已完成回复==========\n")
             ai_status = 2
-            print("\n==========AI开始回复==========\n")
             break
 
         if response["result"] == "FAILED":
+            # AI回复出现故障
             thread1_stop = True
             thread2_stop = True
             break
-        time.sleep(generate_random_number(3, 5))
+        time.sleep(3)  # 每4秒查询一次AI是否有新回复
 
 
 def generate_random_number(start, end):
@@ -88,6 +95,7 @@ def generate_random_number(start, end):
 
 
 def print_ai_response():
+    '''输出AI的回复'''
     global ai_response
     global ai_status
     global thread2_stop
@@ -96,23 +104,28 @@ def print_ai_response():
             print("\n==========抱歉，出现错误，已停止回答，请稍后或切换模型再试==========")
             break
 
-        num_to_print = generate_random_number(2, 5)
+        num_to_print = generate_random_number(3, 5)  # 每次输出3-5个字符
 
+        # 如果AI的回复不为空，则输出当前回复的前num_to_print个字符
         if len(ai_response) > 0:
-            if ai_status != 2:
+            # 若AI没有回复完成，将AI状态设置为“回复中”
+            if ai_status == 0:
+                print("\n==========AI开始回复==========\n")
                 ai_status = 1
 
             print(ai_response[:num_to_print], end="")
-            with ai_response_lock:
-                ai_response = ai_response[num_to_print:]
+            with ai_response_lock:  # 加锁，防止多线程同时修改ai_response
+                ai_response = ai_response[num_to_print:]  # 将已输出的内容从ai_response中删除
         # print("ai_status:" + str(ai_status) + ", ai_response:" + ai_response)
+        # 如果AI回复完成，且ai_response为空，则退出循环
         if ai_status == 2 and len(ai_response) == 0:
             print("\n\n==========AI回复完成==========")
             break
-        time.sleep(generate_random_number(0.05, 0.2))
+        time.sleep(generate_random_number(0.08, 0.2))
 
 
 def show_help():
+    '''显示帮助信息'''
     print("""==========使用说明==========
 目前支持下列命令：
 1.切换AI xxx（注意空格）
@@ -135,6 +148,7 @@ def show_help():
 
 
 def convert_eng_to_chinese(text):
+    '''将模型英文转换为中文'''
     match text:
         case "chatgpt-web":
             return "OpenAI ChatGPT 网页版"
@@ -180,6 +194,7 @@ def chat():
 
     print("正在连接AI服务器，请稍候……")
 
+    # 测试AI服务器是否可用，同时尝试设置AI回复的模式为“文本模式”
     test = send_user_message("文本模式").status_code
     if test != 200:
         print(f"AI服务器连接失败，错误代码：HTTP ERROR {test}，请检查您的网络状况并稍后再试。")
@@ -187,16 +202,20 @@ def chat():
 
     print("连接成功！正在初始化……")
 
+    # 获取当前使用的聊天模型
     status = str(get_ai_status(send_user_message("ping").text))
     current_ai_model = status.split("当前AI：")[1].split(" /")[0]
 
-    print("全部完成！\n可用命令：\nexit(): 返回主菜单\nhelp(): 获取使用说明")
+    print("全部完成！\n可用命令：\n\texit(): 返回主菜单\n\thelp(): 获取使用说明")
     while True:
+        # 获取用户输入的消息
         input_message = input(f"\n当前模型：{convert_eng_to_chinese(current_ai_model)}\n请输入您要发送的消息或命令：")
+        # 如果用户输入exit()，则退出聊天
         if input_message == "exit()":
             print("就聊到这里吧，下次再见！")
             time.sleep(1)
             return
+        # 如果用户输入help()，则显示帮助信息
         elif input_message == "help()":
             show_help()
             continue
@@ -216,11 +235,14 @@ def chat():
             print(str(get_ai_status(send_user_message(input_message).text)))
             continue
 
+        # 发送用户消息，获取AI回复
         msg_id = send_user_message(input_message)
+        # 如果AI服务器返回的状态码不是200，则提示用户网络错误
         if msg_id.status_code != 200:
             print(f"AI服务器连接失败，错误代码：HTTP ERROR {msg_id.status_code}，请检查您的网络状况并稍后再试。")
             continue
 
+        # 重置线程状态
         thread1_stop = False
         thread2_stop = False
         ai_response = ""
@@ -228,11 +250,14 @@ def chat():
 
         print("AI正在思考，请稍候.", end="")
         # t1 = threading.Thread(target=get_ai_response(msg_id.text))
+        # 设置线程
         t1 = threading.Thread(target=get_ai_response, args=(msg_id.text,))
         t2 = threading.Thread(target=print_ai_response)
 
+        # 启动线程
         t1.start()
         t2.start()
 
+        # 等待线程结束
         t1.join()
         t2.join()

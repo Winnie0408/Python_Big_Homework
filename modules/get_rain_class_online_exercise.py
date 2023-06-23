@@ -50,6 +50,7 @@ def ocr_from_pic(name):
 
 
 def show_noti(driver, noti):
+    '''执行JavaScript代码，显示自定义内容的通知'''
     delete_noti(driver)
     driver.execute_script(f"""
         var div = document.createElement('div');
@@ -68,36 +69,36 @@ def show_noti(driver, noti):
 
 
 def delete_noti(driver):
+    '''执行JavaScript代码，删除通知'''
     try:
         driver.execute_script("var div = document.querySelector('#HWinZnieJ');div.remove();")
     except JavascriptException:
         pass
 
 
-def hide_noti(driver):
-    driver.execute_script("var div = document.querySelector('#HWinZnieJ');div.style.display = 'none';")
-
-
 def write_exercise_to_csv(exercise, answer, index):
-    type = exercise[0]['text'].split("题")[0]
-    optD = exercise[len(exercise) - 1]['text'][1:]
-    exercise.pop()
-    optC = exercise[len(exercise) - 1]['text'][1:]
-    exercise.pop()
-    optB = exercise[len(exercise) - 1]['text'][1:]
-    exercise.pop()
-    optA = exercise[len(exercise) - 1]['text'][1:]
-    exercise.pop()
+    '''将题目写入CSV文件，类型1'''
+    type = exercise[0]['text'].split("题")[0]  # 题目类型
+    optD = exercise[len(exercise) - 1]['text'][1:]  # 选项D
+    exercise.pop()  # 删除选项D
+    optC = exercise[len(exercise) - 1]['text'][1:]  # 选项C
+    exercise.pop()  # 删除选项C
+    optB = exercise[len(exercise) - 1]['text'][1:]  # 选项B
+    exercise.pop()  # 删除选项B
+    optA = exercise[len(exercise) - 1]['text'][1:]  # 选项A
+    exercise.pop()  # 删除选项A
 
-    exercise.pop(0)
+    exercise.pop(0)  # 删除题目类型
 
     title = ""
+    # 拼接题目
     for i in range(len(exercise)):
         title += exercise[i]['text']
-    title = title.replace("口", "", 1)
+    title = title.replace("口", "", 1)  # 删除题目开头因干扰而识别出来的的“口”
     if answer == "评论":
         answer = "该题未公布正确答案"
     try:
+        # 写入CSV文件
         with open('RainClass_Online_result.csv', 'a', encoding='gbk', errors='ignore') as writer:
             writer.write("(" + type + ") " + str(index) + "." + title + ",A." + optA + ",B." + optB + ",C." + optC + ",D." + optD + ",," + answer.replace("\n", "").replace(" ", ""))
             writer.write("\n")
@@ -106,6 +107,7 @@ def write_exercise_to_csv(exercise, answer, index):
 
 
 def write_title_to_csv(title):
+    '''将题目标题写入CSV文件'''
     try:
         with open('RainClass_Online_result.csv', 'a', encoding='gbk', errors='ignore') as writer:
             writer.write("\n" + title + "\n")
@@ -114,11 +116,14 @@ def write_title_to_csv(title):
 
 
 def write_exercise_to_csv1(type, question, opt, answer, index):
+    '''将题目写入CSV文件，类型2'''
     try:
         with open('RainClass_Online_result.csv', 'a', encoding='gbk', errors='ignore') as writer:
             if type == "判断":
+                # (题目类型)题号.题目正文，正确,错误,,,,答案
                 writer.write("(" + type + ") " + str(index) + "." + question + ",正确,错误,,,," + answer.replace(",", "").split(" ")[0])
             else:
+                # (题目类型)题号.题目正文，A.选项A,B.选项B,C.选项C,D.选项D,,,答案
                 writer.write("(" + type + ") " + str(index) + "." + question)
                 for i in range(0, len(opt)):
                     match i:
@@ -130,14 +135,14 @@ def write_exercise_to_csv1(type, question, opt, answer, index):
                             writer.write(",C." + opt[i])
                         case 3:
                             writer.write(",D." + opt[i])
-
                 writer.write(",," + answer.replace(",", "").split(" ")[0])
-            writer.write("\n")
+            writer.write("\n")  # 换行
     except IOError as e:
         print(e)
 
 
 def read_config():
+    '''读取配置文件'''
     try:
         with open('./config.cfg', encoding='utf-8') as file:
             content = file.read()
@@ -147,11 +152,13 @@ def read_config():
 
 
 def save_config(content):
+    '''保存配置文件'''
     with open('./config.cfg', 'a', encoding='utf-8') as file:
         file.write(content)
 
 
 def delete_line_with_keyword(file_path, keyword):
+    '''删除指定文件中包含关键词的行'''
     try:
         # 打开txt文件，并读取其中的内容
         with open(file_path, 'r') as f:
@@ -172,8 +179,9 @@ def delete_line_with_keyword(file_path, keyword):
 
 
 def get():
+    '''获取题目'''
     if os.path.exists("RainClass_Online_result.csv"):
-        del_file = input("\n需要删除上次生成结果文件才能继续，删除吗？\nY/y：删除\n其他字符：退出\n请选择：").lower()
+        del_file = input("\n需要删除上次生成结果文件RainClass_Online_result.csv才能继续\n删除吗？\nY/y：删除\n其他字符：退出\n请选择：").lower()
         if del_file == "y":
             os.remove("RainClass_Online_result.csv")
             print("已删除")
@@ -270,6 +278,7 @@ def get():
 
 
 def traversal_list(driver, wait, recursion, teacher, class_name, list, progress):
+    '''递归遍历日志列表'''
     for i in range(int(progress), int(list) + 1):
         time.sleep(0.5)
         if recursion == "":
@@ -370,6 +379,7 @@ def traversal_list(driver, wait, recursion, teacher, class_name, list, progress)
                 num = len(driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div/section[" + str(i) + "]/" + path + "/section[2]/div/div").find_elements(By.XPATH, "./section"))  # 获取批量日志中包含的日志数量
                 print("\t该批量日志有" + str(num) + "个子日志，正在获取……")
 
+                # 递归获取批量日志中的子日志
                 traversal_list(driver, wait, "/html/body/div[4]/div[2]/div/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div/section[" + str(i) + "]/" + path + "/section[2]/div/div", teacher, class_name, num, 1)
                 if recursion == "":
                     print("第" + str(i) + "个" + type + "日志：" + name + "获取完毕")
@@ -379,6 +389,7 @@ def traversal_list(driver, wait, recursion, teacher, class_name, list, progress)
 
 
 def extract_exercise_from_classroom(driver, wait, name, type):
+    '''从课堂日志中提取习题'''
     try:
         WebDriverWait(driver, 1, 0.3).until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/section/main/div[2]/div/div/div[2]/div/div[1]/div/div")))  # 等待习题加载
         driver.refresh()
@@ -412,6 +423,7 @@ def extract_exercise_from_classroom(driver, wait, name, type):
 
 
 def extract_exercise_from_examination(driver, wait, name, type):
+    '''从考试日志中提取习题'''
     wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/div[2]/div/div/div[4]/a")))
     driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div[2]/div/div/div[4]/a").click()  # 点击查看试卷
     driver.switch_to.window(driver.window_handles[-1])  # 切换到新窗口
@@ -451,6 +463,7 @@ def extract_exercise_from_examination(driver, wait, name, type):
 
 
 def extract_exercise_from_discussion(driver, name, type):
+    '''从讨论日志中提取习题'''
     time.sleep(0.5)
     # title = driver.find_element(By.XPATH,"/html/body/div[4]/div[2]/div/div[2]/div[1]/div/section[1]/div[1]/span").text
     text = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div[2]/div[1]/div/section[2]/div").get_attribute("innerText")
@@ -461,6 +474,7 @@ def extract_exercise_from_discussion(driver, name, type):
 
 
 def extract_exercise_from_homework(driver, wait, name, type):
+    '''从作业日志中提取习题'''
     wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[1]/div/div[2]/div[1]/div/div/div/div")))
     time.sleep(0.5)
     # 获取题目数量
@@ -493,6 +507,7 @@ def extract_exercise_from_homework(driver, wait, name, type):
 
 
 def roll_to_bottom(driver):
+    '''滚动到网页真实的底部'''
     last_height = 0
     xpath = "/html/body/div[4]/div[2]/div/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div[1]/div"
 

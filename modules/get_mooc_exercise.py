@@ -10,6 +10,7 @@ from webdriver_manager.microsoft import EdgeChromiumDriverManager
 
 
 def show_noti(driver, noti):
+    '''执行JavaScript代码，显示自定义内容的通知'''
     delete_noti(driver)
     driver.execute_script(f"""
         var div = document.createElement('div');
@@ -28,6 +29,7 @@ def show_noti(driver, noti):
 
 
 def delete_noti(driver):
+    '''执行JavaScript代码，删除通知'''
     try:
         driver.execute_script("var div = document.querySelector('#HWinZnieJ');div.remove();")
     except JavascriptException:
@@ -35,6 +37,7 @@ def delete_noti(driver):
 
 
 def read_config():
+    '''读取配置文件'''
     try:
         with open('./config.cfg', encoding='utf-8') as file:
             content = file.read()
@@ -44,11 +47,13 @@ def read_config():
 
 
 def save_config(content):
+    '''保存配置文件'''
     with open('./config.cfg', 'a', encoding='utf-8') as file:
         file.write(content)
 
 
 def delete_line_with_keyword(file_path, keyword):
+    '''删除指定文件中包含关键词的行'''
     try:
         # 打开txt文件，并读取其中的内容
         with open(file_path, 'r') as f:
@@ -69,6 +74,7 @@ def delete_line_with_keyword(file_path, keyword):
 
 
 def remove_non_gbk_chars(text: str) -> str:
+    """移除字符串中的无法用GBK表示的字符"""
     result = ""
     for char in text:
         try:
@@ -80,8 +86,9 @@ def remove_non_gbk_chars(text: str) -> str:
 
 
 def get():
+    '''获取练习题'''
     if os.path.exists("MOOC_result.csv"):
-        del_file = input("\n需要删除上次生成结果文件才能继续，删除吗？\nY/y：删除\n其他字符：退出\n请选择：").lower()
+        del_file = input("\n需要删除上次生成结果文件MOOC_result.csv才能继续\n删除吗？\nY/y：删除\n其他字符：退出\n请选择：").lower()
         if del_file == "y":
             os.remove("MOOC_result.csv")
             print("已删除")
@@ -112,11 +119,8 @@ def get():
     print("浏览器启动成功")
     driver.maximize_window()
     driver.get("https://www.icourse163.org/")
-    # driver.add_cookie(
-    #     {'name': 'STUDY_SESS',
-    #      'value': '',
-    #      'domain': '.icourse163.org'})
 
+    # 读取Cookie
     cookie_valid = False
     cookie_expired = False
     try:
@@ -136,8 +140,6 @@ def get():
     except IndexError:
         print("未保存Cookie")
 
-    # driver.get(
-    #     "file://C:/Users/11969/OneDrive/桌面/毛泽东思想和中国特色社会主义理论体系概论（曾丽萍）_中国大学MOOC(慕课).html")
     i = 0
 
     while True:
@@ -152,16 +154,16 @@ def get():
             print("请登录MOOC账号")
             show_noti(driver, "<br>请登录MOOC账号，然后返回Python查看使用说明")
 
-        print(
-            "点击到您需要导出的练习页面,若当前练习公布了正确答案请输入Y继续,未公布正确答案,请输入y继续,输入其他任意字符退出")
+        print("点击到您需要导出的练习页面,若当前练习公布了正确答案请输入Y继续,未公布正确答案,请输入y继续,输入其他任意字符退出")
         option = input()
         if option != "Y" and option != "y":
             print("已退出")
             exit(0)
 
+        # 读取Cookie
         if not cookie_valid:
             delete_line_with_keyword("./config.cfg", "MOOC#")
-            cookie_timestamp = int(time.time()) + 86400 * 3
+            cookie_timestamp = int(time.time()) + 86400 * 5
             cookie_timestamp1 = time.gmtime(cookie_timestamp)
             cookie_timestamp1 = time.strftime("%Y-%m-%d", cookie_timestamp1)
             save_config("\nMOOC#" + json.dumps(driver.get_cookie('STUDY_SESS')) + "#" + str(cookie_timestamp))
@@ -181,8 +183,8 @@ def get():
         children = div.find_elements(By.XPATH, "./*")
         count = len(children)
         print(f"当前页面练习题个数为:{count}")
-        print("开始获取......")
-        title = driver.find_element(By.XPATH, "/html/body/div[5]/div[2]/div[4]/div[2]/div/div[1]/div/div[1]/h2").text
+        print("开始获取...")
+        title = driver.find_element(By.XPATH, "/html/body/div[5]/div[2]/div[4]/div[2]/div/div[1]/div/div[1]/h2").text  # 获取练习标题
         question = [""] * count
         options1 = [[""] * 5 for i in range(count)]
         answer = [""] * count
@@ -191,26 +193,25 @@ def get():
         q = 0
 
         if option == "Y":
+            # 获取正确答案
             for temp in range(1, count + 1):
                 try:
                     print(f"正在获取第{temp}题")
-                    question[temp - 1] = driver.find_element(By.XPATH,
-                                                             f"/html/body/div[5]/div[2]/div[4]/div[2]/div/div[1]/div/div[4]/div/div[1]/div[1]/div[{temp}]/div[1]/div[2]/div[3]/p").text
-                    type[temp - 1] = driver.find_element(By.XPATH,
-                                                         f"/html/body/div[5]/div[2]/div[4]/div[2]/div/div[1]/div/div[4]/div/div[1]/div[1]/div[{temp}]/div[1]/div[2]/div[2]/span").text
-                    div = driver.find_element(By.XPATH,
-                                              f"/html/body/div[5]/div[2]/div[4]/div[2]/div/div[1]/div/div[4]/div/div[1]/div[1]/div[{temp}]/div[2]/div/ul")
+                    # 获取题目
+                    question[temp - 1] = driver.find_element(By.XPATH, f"/html/body/div[5]/div[2]/div[4]/div[2]/div/div[1]/div/div[4]/div/div[1]/div[1]/div[{temp}]/div[1]/div[2]/div[3]/p").text
+                    # 获取题型
+                    type[temp - 1] = driver.find_element(By.XPATH, f"/html/body/div[5]/div[2]/div[4]/div[2]/div/div[1]/div/div[4]/div/div[1]/div[1]/div[{temp}]/div[1]/div[2]/div[2]/span").text
+                    # 获取备选答案
+                    div = driver.find_element(By.XPATH, f"/html/body/div[5]/div[2]/div[4]/div[2]/div/div[1]/div/div[4]/div/div[1]/div[1]/div[{temp}]/div[2]/div/ul")
                     children = div.find_elements(By.XPATH, "./*")
                     optionCount = len(children)
                     for t in range(1, optionCount + 1):
                         try:
-                            options1[temp - 1][t - 1] = chr(ord('A') + t - 1) + "." + driver.find_element(By.XPATH,
-                                                                                                          f"/html/body/div[5]/div[2]/div[4]/div[2]/div/div[1]/div/div[4]/div/div[1]/div[1]/div[{temp}]/div[2]/div/ul/li[{t}]/label/div[2]/p/span").text
+                            options1[temp - 1][t - 1] = chr(ord('A') + t - 1) + "." + driver.find_element(By.XPATH, f"/html/body/div[5]/div[2]/div[4]/div[2]/div/div[1]/div/div[4]/div/div[1]/div[1]/div[{temp}]/div[2]/div/ul/li[{t}]/label/div[2]/p/span").text
                         except NoSuchElementException:
-                            options1[temp - 1][t - 1] = chr(ord('A') + t - 1) + "." + driver.find_element(By.XPATH,
-                                                                                                          f"/html/body/div[5]/div[2]/div[4]/div[2]/div/div[1]/div/div[4]/div/div[1]/div[1]/div[{temp}]/div[2]/div/ul/li[{t}]/label/div[2]/p[1]").text
-                    answer[temp - 1] = driver.find_element(By.XPATH,
-                                                           f"/html/body/div[5]/div[2]/div[4]/div[2]/div/div[1]/div/div[4]/div/div[1]/div[1]/div[{temp}]/div[2]/div/div/div/span[2]").text
+                            options1[temp - 1][t - 1] = chr(ord('A') + t - 1) + "." + driver.find_element(By.XPATH, f"/html/body/div[5]/div[2]/div[4]/div[2]/div/div[1]/div/div[4]/div/div[1]/div[1]/div[{temp}]/div[2]/div/ul/li[{t}]/label/div[2]/p[1]").text
+                    # 获取正确答案
+                    answer[temp - 1] = driver.find_element(By.XPATH, f"/html/body/div[5]/div[2]/div[4]/div[2]/div/div[1]/div/div[4]/div/div[1]/div[1]/div[{temp}]/div[2]/div/div/div/span[2]").text
                     q += 1
                 except:
                     print(f"第{temp}题获取失败")
@@ -218,34 +219,31 @@ def get():
                 print(f"{title}获取成功")
                 i += 1
         else:
+            # 获取当前用户的答案
             tips = driver.find_element(By.XPATH, "/html/body/div[5]/div[2]/div[4]/div[2]/div/div[1]/div/div[2]").text
             for temp in range(1, count + 1):
                 try:
                     print(f"正在获取第{temp}题")
-                    question[temp - 1] = driver.find_element(By.XPATH,
-                                                             f"/html/body/div[5]/div[2]/div[4]/div[2]/div/div[1]/div/div[4]/div/div[1]/div[1]/div[{temp}]/div[1]/div[2]/div[3]/p").text
-                    type[temp - 1] = driver.find_element(By.XPATH,
-                                                         f"/html/body/div[5]/div[2]/div[4]/div[2]/div/div[1]/div/div[4]/div/div[1]/div[1]/div[{temp}]/div[1]/div[2]/div[2]/span").text
-                    div = driver.find_element(By.XPATH,
-                                              f"/html/body/div[5]/div[2]/div[4]/div[2]/div/div[1]/div/div[4]/div/div[1]/div[1]/div[{temp}]/div[2]/ul")
+                    # 获取题目
+                    question[temp - 1] = driver.find_element(By.XPATH, f"/html/body/div[5]/div[2]/div[4]/div[2]/div/div[1]/div/div[4]/div/div[1]/div[1]/div[{temp}]/div[1]/div[2]/div[3]/p").text
+                    # 获取题型
+                    type[temp - 1] = driver.find_element(By.XPATH, f"/html/body/div[5]/div[2]/div[4]/div[2]/div/div[1]/div/div[4]/div/div[1]/div[1]/div[{temp}]/div[1]/div[2]/div[2]/span").text
+                    # 获取备选答案
+                    div = driver.find_element(By.XPATH, f"/html/body/div[5]/div[2]/div[4]/div[2]/div/div[1]/div/div[4]/div/div[1]/div[1]/div[{temp}]/div[2]/ul")
                     children = div.find_elements(By.XPATH, "./*")
                     optionCount = len(children)
                     answerOption = [""] * count
                     for t in range(1, optionCount + 1):
                         try:
-                            options1[temp - 1][t - 1] = chr(ord('A') + t - 1) + "." + driver.find_element(By.XPATH,
-                                                                                                          f"/html/body/div[5]/div[2]/div[4]/div[2]/div/div[1]/div/div[4]/div/div[1]/div[1]/div[{temp}]/div[2]/ul/li[{t}]/label/div[2]/p/span").text
-                            answerOption[temp - 1] = driver.find_element(By.XPATH,
-                                                                         f"/html/body/div[5]/div[2]/div[4]/div[2]/div/div[1]/div/div[4]/div/div[1]/div[1]/div[{temp}]/div[2]/ul/li[{t}]/input").get_attribute(
-                                "checked")
+                            options1[temp - 1][t - 1] = chr(ord('A') + t - 1) + "." + driver.find_element(By.XPATH, f"/html/body/div[5]/div[2]/div[4]/div[2]/div/div[1]/div/div[4]/div/div[1]/div[1]/div[{temp}]/div[2]/ul/li[{t}]/label/div[2]/p/span").text
+                            answerOption[temp - 1] = driver.find_element(By.XPATH, f"/html/body/div[5]/div[2]/div[4]/div[2]/div/div[1]/div/div[4]/div/div[1]/div[1]/div[{temp}]/div[2]/ul/li[{t}]/input").get_attribute("checked")
+                            # 检查用户是否选择了该选项
                             if answerOption[temp - 1] != None:
                                 answer[temp - 1] += chr(ord('A') + t - 1)
                         except NoSuchElementException:
-                            options1[temp - 1][t - 1] = chr(ord('A') + t - 1) + "." + driver.find_element(By.XPATH,
-                                                                                                          f"/html/body/div[5]/div[2]/div[4]/div[2]/div/div[1]/div/div[4]/div/div[1]/div[1]/div[{temp}]/div[2]/ul/li[{t}]/label/div[2]/p[1]").text
-                            answerOption[temp - 1] = driver.find_element(By.XPATH,
-                                                                         f"/html/body/div[5]/div[2]/div[4]/div[2]/div/div[1]/div/div[4]/div/div[1]/div[1]/div[{temp}]/div[2]/ul/li[{t}]/input").get_attribute(
-                                "checked")
+                            options1[temp - 1][t - 1] = chr(ord('A') + t - 1) + "." + driver.find_element(By.XPATH, f"/html/body/div[5]/div[2]/div[4]/div[2]/div/div[1]/div/div[4]/div/div[1]/div[1]/div[{temp}]/div[2]/ul/li[{t}]/label/div[2]/p[1]").text
+                            answerOption[temp - 1] = driver.find_element(By.XPATH, f"/html/body/div[5]/div[2]/div[4]/div[2]/div/div[1]/div/div[4]/div/div[1]/div[1]/div[{temp}]/div[2]/ul/li[{t}]/input").get_attribute("checked")
+                            # 检查用户是否选择了该选项
                             if answerOption[temp - 1] != None:
                                 answer[temp - 1] += chr(ord('A') + t - 1)
                     q += 1
@@ -255,6 +253,7 @@ def get():
                 print(f"{title} 获取成功")
                 i += 1
 
+        # 保存题目信息
         try:
             with open('MOOC_result.csv', 'a', encoding='gbk', errors='ignore') as file:
                 writer = io.TextIOWrapper(file.buffer, write_through=True)
@@ -265,9 +264,10 @@ def get():
                         writer.write(remove_non_gbk_chars(tips))
                         writer.write("\n")
                     writer.write(
-                        "(" + remove_non_gbk_chars(type[a]) + ") " + str(a + 1) + "." + remove_non_gbk_chars(question[a]) + ","
-                        + remove_non_gbk_chars(str(options1[a])).replace(" ", "").split("[")[1].split("]")[0].replace("'", "")
-                        + ",," + remove_non_gbk_chars(answer[a]).replace("、", ""))
+                        "(" + remove_non_gbk_chars(type[a]) + ") "  # 题型
+                        + str(a + 1) + "." + remove_non_gbk_chars(question[a]) + ","  # 题号、题目
+                        + remove_non_gbk_chars(str(options1[a])).replace(" ", "").split("[")[1].split("]")[0].replace("'", "")  # 备选答案
+                        + ",," + remove_non_gbk_chars(answer[a]).replace("、", ""))  # 正确答案（或当前用户答案）
                     writer.write("\n")
                 writer.close()
         except IOError as e:
