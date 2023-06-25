@@ -82,7 +82,7 @@ def get_ai_response(msg_id):
             thread1_stop = True
             thread2_stop = True
             break
-        time.sleep(3)  # 每4秒查询一次AI是否有新回复
+        time.sleep(3)  # 每3秒查询一次AI是否有新回复
 
 
 def generate_random_number(start, end):

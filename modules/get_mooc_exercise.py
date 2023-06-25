@@ -96,7 +96,7 @@ def get():
             print("您已取消练习题导出")
             return
 
-    print("\n请输入需要导出的练习章节数，（非零整数）", end="")
+    print("\n请输入需要导出的练习章节数，（正整数）", end="")
     try:
         exercise = int(input(""))
     except TypeError:
@@ -273,4 +273,4 @@ def get():
         except IOError as e:
             print(e)
 
-    print("结果已写入MOOC_result.csv\n")
+    print("结果已写入MOOC_result.csv\n，返回主菜单")

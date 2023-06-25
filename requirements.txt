@@ -1,0 +1,6 @@
+cnocr>=2.2.2.3
+requests>=2.31.0
+selenium>=4.10.0
+pandas>=2.0.2
+pytz>=2023.3
+Pillow>=9.5.0

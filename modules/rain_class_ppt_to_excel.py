@@ -190,6 +190,8 @@ def run():
             print("您已取消练习题导出")
             return
 
+    if not os.path.exists("./PPT"):
+        os.mkdir("./PPT")
     choose = input('\n请将需要转换的PPT文件放在本程序同目录的PPT目录下\n\tY/y: 继续操作\n\t其他任意字符: 退出：')
 
     if choose.lower() == 'y':
@@ -214,7 +216,7 @@ def run():
                 f3.write(data)
                 f3.close()
         text_to_excel('./.temp')
-        print('转换完成！返回主菜单')
+        print('转换完成！结果已导出为RainClass_PPT_Result.xlsx\n返回主菜单')
         os.remove('./.temp')
         return
     else:

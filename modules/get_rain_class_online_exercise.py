@@ -77,7 +77,7 @@ def delete_noti(driver):
 
 
 def write_exercise_to_csv(exercise, answer, index):
-    '''将题目写入CSV文件，类型1'''
+    '''将题目内容写入CSV文件，类型1'''
     type = exercise[0]['text'].split("题")[0]  # 题目类型
     optD = exercise[len(exercise) - 1]['text'][1:]  # 选项D
     exercise.pop()  # 删除选项D
@@ -116,7 +116,7 @@ def write_title_to_csv(title):
 
 
 def write_exercise_to_csv1(type, question, opt, answer, index):
-    '''将题目写入CSV文件，类型2'''
+    '''将题目内容写入CSV文件，类型2'''
     try:
         with open('RainClass_Online_result.csv', 'a', encoding='gbk', errors='ignore') as writer:
             if type == "判断":
