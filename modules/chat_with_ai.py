@@ -61,8 +61,6 @@ def get_ai_response(msg_id):
                 # print("\n==========分段==========\n")
         except IndexError:
             # AI正在思考
-            if ai_status == 0:
-                print(".", end="")
             pass
         try:
             if str(response["message"][0]).__contains__("出现故障"):
@@ -99,6 +97,8 @@ def print_ai_response():
     global ai_response
     global ai_status
     global thread2_stop
+    first_print = True
+    temp = 0
     while True:
         if thread2_stop:
             print("\n==========抱歉，出现错误，已停止回答，请稍后或切换模型再试==========")
@@ -106,12 +106,15 @@ def print_ai_response():
 
         num_to_print = generate_random_number(3, 5)  # 每次输出3-5个字符
 
+        if len(ai_response) == 0 and first_print and temp % 25 == 0:
+            print(".", end="")
+
         # 如果AI的回复不为空，则输出当前回复的前num_to_print个字符
         if len(ai_response) > 0:
             # 若AI没有回复完成，将AI状态设置为“回复中”
-            if ai_status == 0:
+            if first_print:
                 print("\n==========AI开始回复==========\n")
-                ai_status = 1
+                first_print = False
 
             print(ai_response[:num_to_print], end="")
             with ai_response_lock:  # 加锁，防止多线程同时修改ai_response
@@ -121,6 +124,8 @@ def print_ai_response():
         if ai_status == 2 and len(ai_response) == 0:
             print("\n\n==========AI回复完成==========")
             break
+
+        temp += 1
         time.sleep(generate_random_number(0.08, 0.2))
 
 

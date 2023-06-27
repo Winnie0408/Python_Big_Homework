@@ -192,7 +192,7 @@ def run():
 
     if not os.path.exists("./PPT"):
         os.mkdir("./PPT")
-    choose = input('\n请将需要转换的PPT文件放在本程序同目录的PPT目录下\n\tY/y: 继续操作\n\t其他任意字符: 退出：')
+    choose = input('\n请将需要转换的PPT文件放在本程序同目录的PPT目录下\n\tY/y: 继续操作\n\t其他任意字符: 退出\n请选择：')
 
     if choose.lower() == 'y':
         if os.path.exists(".temp"):

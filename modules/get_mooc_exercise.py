@@ -88,7 +88,7 @@ def remove_non_gbk_chars(text: str) -> str:
 def get():
     '''获取练习题'''
     if os.path.exists("MOOC_result.csv"):
-        del_file = input("\n需要删除上次生成结果文件MOOC_result.csv才能继续\n删除吗？\nY/y：删除\n其他字符：退出\n请选择：").lower()
+        del_file = input("\n需要删除上次生成结果文件MOOC_result.csv才能继续\n删除吗？\n\tY/y：删除\n\t其他字符：退出\n请选择：").lower()
         if del_file == "y":
             os.remove("MOOC_result.csv")
             print("已删除")
@@ -96,7 +96,7 @@ def get():
             print("您已取消练习题导出")
             return
 
-    print("\n请输入需要导出的练习章节数，（正整数）", end="")
+    print("\n请输入需要导出的练习章节数，（正整数）：", end="")
     try:
         exercise = int(input(""))
     except TypeError:
@@ -173,7 +173,7 @@ def get():
 
         driver.switch_to.window(driver.window_handles[-1])  # 切换到新窗口
 
-        for i2 in range(0, len(driver.window_handles) - 1):
+        for i2 in range(0, len(driver.window_handles)):
             try:
                 div = driver.find_element(By.XPATH, "/html/body/div[5]/div[2]/div[4]/div[2]/div/div[1]/div/div[4]/div/div[1]/div[1]")
                 break
@@ -273,4 +273,4 @@ def get():
         except IOError as e:
             print(e)
 
-    print("结果已写入MOOC_result.csv\n，返回主菜单")
+    print("结果已写入MOOC_result.csv，返回主菜单")

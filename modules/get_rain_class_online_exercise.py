@@ -181,7 +181,7 @@ def delete_line_with_keyword(file_path, keyword):
 def get():
     '''获取题目'''
     if os.path.exists("RainClass_Online_result.csv"):
-        del_file = input("\n需要删除上次生成结果文件RainClass_Online_result.csv才能继续\n删除吗？\nY/y：删除\n其他字符：退出\n请选择：").lower()
+        del_file = input("\n需要删除上次生成结果文件RainClass_Online_result.csv才能继续\n删除吗？\n\tY/y：删除\n\t其他字符：退出\n请选择：").lower()
         if del_file == "y":
             os.remove("RainClass_Online_result.csv")
             print("已删除")
@@ -207,7 +207,7 @@ def get():
     cookie_valid = False
     cookie_expired = False
     try:
-        cookie = json.loads(read_config().split("RainClass#")[1])
+        cookie = json.loads(read_config().split("RainClass#")[1].split("#")[0])
         if cookie != "":
             if int(cookie['expiry']) < int(time.time()):
                 delete_noti(driver)
@@ -237,7 +237,7 @@ def get():
 
     if not cookie_valid:
         delete_line_with_keyword("./config.cfg", "RainClass#")
-        save_config("\nRainClass#" + json.dumps(driver.get_cookie('sessionid')))
+        save_config("\nRainClass#" + json.dumps(driver.get_cookie('sessionid')) + "#")
         cookie_timestamp = driver.get_cookie('sessionid')['expiry']
         cookie_timestamp = datetime.datetime.utcfromtimestamp(cookie_timestamp).replace(tzinfo=pytz.utc)
         cookie_timestamp = cookie_timestamp.astimezone(pytz.timezone('Asia/Shanghai'))
@@ -248,7 +248,7 @@ def get():
 
     show_noti(driver, "请选择您要导出的课程，<br>选择好后请回到Python确认")
 
-    if input("输入Y/y后回车以继续").lower() != 'y':
+    if input("输入Y/y后回车以继续：").lower() != 'y':
         print("您已取消练习题导出")
         return
 
@@ -264,7 +264,7 @@ def get():
 
     while True:
         try:
-            progress = int(input("请选择：\n1：从头开始;\n任意正整数：从给定的位置开始\n其他字符：退出"))
+            progress = int(input("\t1：从头开始获取题目;\n\t任意正整数：从给定的位置开始获取题目\n\t其他字符：退出\n请选择："))
             if progress % 1 != 0:
                 print("请输入整数")
             else:
@@ -476,7 +476,7 @@ def extract_exercise_from_discussion(driver, name, type):
 def extract_exercise_from_homework(driver, wait, name, type):
     '''从作业日志中提取习题'''
     wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[1]/div/div[2]/div[1]/div/div/div/div")))
-    time.sleep(0.5)
+    time.sleep(1)
     # 获取题目数量
     num = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[1]/div/div[2]/div[1]/div/div/div/div").text.split("/")[1].split("题")[0]
     print("\t该日志有" + str(num) + "道习题，正在获取……")
@@ -497,7 +497,7 @@ def extract_exercise_from_homework(driver, wait, name, type):
             except NoSuchElementException:
                 break
 
-        answer = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[2]/div[1]/div[1]/div/div/div[3]/div[1]/div/div[2]/div").text.split("：")[1].split(" ")[1]  # 获取答案
+        answer = driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[2]/div[1]/div[1]/div/div/div[3]/div[1]/div/div[2]/div").text.split("：")[1].replace(" ", "")  # 获取答案
         write_exercise_to_csv1(typeEx, question, opt, answer, j)
         if j < int(num):
             driver.find_element(By.XPATH, "/html/body/div[4]/div[2]/div/div/div[2]/div/div[2]/div[2]/div/div[3]/div/ul/li").click()  # 点击下一题
